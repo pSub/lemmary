@@ -35,6 +35,12 @@ export type AppSettings = {
    */
   websearch_provider_id: string
   ocr_timeout_sec: number
+  /**
+   * When a PDF goes to OCR in parts: auto sends it whole and halves only what
+   * the provider refuses as too large or rate-limited; always is one page per
+   * request.
+   */
+  ocr_page_mode: OCRPageMode
   processing_result_language: string
   deep_search_languages: string
   openai_timeout_sec: number
@@ -90,6 +96,8 @@ export type AppSettings = {
   /** Accent color as #rrggbb. Empty means the built-in accent. */
   accent: string
 }
+
+export type OCRPageMode = 'off' | 'auto' | 'always'
 
 export type AppSettingsPatch = Partial<
   Omit<AppSettings, 'embedding_dims' | 'imap_password_set'> & {

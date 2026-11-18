@@ -55,6 +55,9 @@ type Config struct {
 	EmbeddingProvider *aiprovider.Provider
 	WebSearchProvider *aiprovider.Provider
 
+	// OCRPageMode decides when a PDF is sent to the OCR provider in parts
+	// rather than whole; see the OCRPageMode constants.
+	OCRPageMode              string
 	OCRTimeout               time.Duration
 	ProcessingResultLanguage string
 	DeepSearchLanguages      string
@@ -100,6 +103,17 @@ type Config struct {
 }
 
 const DefaultNearDuplicateThreshold = 0.92
+
+// OCR page modes. Auto sends a PDF whole and halves it only when the provider
+// refuses it as too large or over its rate limit; always sends one page per
+// request. Every part gets its own OCRTimeout.
+const (
+	OCRPageModeOff    = "off"
+	OCRPageModeAuto   = "auto"
+	OCRPageModeAlways = "always"
+)
+
+var OCRPageModes = []string{OCRPageModeOff, OCRPageModeAuto, OCRPageModeAlways}
 
 // The MCP write capabilities an admin can switch on, each a group of tools.
 const (
@@ -380,6 +394,7 @@ func configFromRecord(app core.App, record *core.Record) (Config, error) {
 		EmbeddingDims:                 max(int(record.GetFloat("embedding_dims")), 0),
 		WebSearchProviderID:           strings.TrimSpace(record.GetString("websearch_provider_id")),
 		OCRTimeout:                    time.Duration(ocrTimeoutSec) * time.Second,
+		OCRPageMode:                   strutil.FirstNonEmpty(record.GetString("ocr_page_mode"), OCRPageModeAuto),
 		ProcessingResultLanguage:      strings.ToLower(strings.TrimSpace(record.GetString("processing_result_language"))),
 		DeepSearchLanguages:           NormalizeLanguageList(record.GetString("deep_search_languages")),
 		OpenAITimeout:                 time.Duration(openAITimeoutSec) * time.Second,
@@ -474,6 +489,7 @@ func applyConfigToRecord(record *core.Record, cfg Config) {
 	record.Set("embedding_dims", max(cfg.EmbeddingDims, 0))
 	record.Set("websearch_provider_id", cfg.WebSearchProviderID)
 	record.Set("ocr_timeout_sec", int(cfg.OCRTimeout.Seconds()))
+	record.Set("ocr_page_mode", cfg.OCRPageMode)
 	record.Set("processing_result_language", cfg.ProcessingResultLanguage)
 	record.Set("deep_search_languages", cfg.DeepSearchLanguages)
 	record.Set("openai_timeout_sec", int(cfg.OpenAITimeout.Seconds()))
